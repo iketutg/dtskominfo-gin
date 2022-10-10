@@ -10,7 +10,7 @@ import (
 
 func main() {
 	fmt.Println("Start Server ")
-	testingGoresty()
+	
 	routers.GetRouter().Run(":8000")
 }
 
