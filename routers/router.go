@@ -19,14 +19,37 @@ func GetRouter() *gin.Engine {
 	//engine.Use(Logger(), Recovery())
 	router.Use(gin.Recovery(), midlewares.Logger(), midlewares.GenerateIdUnix())
 
-	groupuser := router.Group("/api/v1/users")
-	groupuser.POST("/registrasi", controllers.Registrasi)
-	groupuser.POST("/login", controllers.Login)
+	//http://localhost:8080/api/v1
+	api := router.Group("/api/v1")
+	{
+		//GET http://localhost:8080/api/v1/health
+		api.GET("/health", controllers.HealthCheck)
 
-	transgroup := router.Group("/api/v1/transaction/").Use(midlewares.JWTAuth())
-	transgroup.POST("/orders", controllers.CreateOrder)
-	transgroup.GET("/orders", controllers.GetOrderAll)
-	transgroup.PUT("/orders/{orderID}", controllers.UpdateOrder)
-	transgroup.DELETE("/orders/{orderID}", controllers.DeleteOrder)
+		//http://localhost:8080/api/v1/users
+		groupuser := api.Group("/users")
+
+		//POST http://localhost:8080/api/v1/users/registrasi
+		groupuser.POST("/registrasi", controllers.Registrasi)
+		//POST http://localhost:8080/api/v1/users/login
+		groupuser.POST("/login", controllers.Login)
+
+		//http://localhost:8080/api/v1/transacation    // harus menggunakan token jwt ada use / midleware
+		grouptrans := api.Group("/transacation").Use(midlewares.JWTAuth())
+		{
+			//POST http://localhost:8080/api/v1/transacation/orders  & body json
+			grouptrans.POST("/orders", controllers.CreateOrder)
+
+			//GET http://localhost:8080/api/v1/transacation/orders/12345
+			grouptrans.GET("/orders/:orderID", controllers.GetOrderBy)
+
+			//PUT http://localhost:8080/api/v1/transacation/orders/12345  & body json
+			grouptrans.PUT("/orders/:orderID", controllers.UpdateOrder)
+
+			//DELETE http://localhost:8080/api/v1/transacation/orders/12345
+			grouptrans.DELETE("/orders/:orderID", controllers.DeleteOrder)
+		}
+
+	}
+
 	return router
 }

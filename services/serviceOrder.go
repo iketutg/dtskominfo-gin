@@ -7,6 +7,7 @@ import (
 	"dtskominfo-gin/models"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -46,6 +47,101 @@ func SaveOrder(req apimodels.Request) (apimodels.Response, error) {
 		Status:       "Success",
 		Total:        total,
 	}, nil
+
+}
+
+func GetOrderBy(orderID string) (res apimodels.ResponseGeneral, err error) {
+	res.Meta.Code = -1
+	res.Meta.Message = "Failed"
+	res.Meta.Status = "Failed"
+	db := database.GetDb()
+	order := &models.Order{}
+
+	log.Println("Order: ", orderID)
+
+	err = db.Preload("Items").Where("order_id = ?", orderID).First(&order).Error
+
+	fmt.Println("Err2 :", err)
+	if err != nil {
+		res.Meta.Message = "Not Found, Try Again"
+		return res, err
+	}
+	res.Meta.Code = 200
+	res.Meta.Message = "Success"
+	res.Meta.Status = "Success"
+	res.Data = order
+	return res, nil
+}
+
+func UpdateOrder(req apimodels.Request, orderId string) (apimodels.Response, error) {
+	order := &models.Order{}
+	order.OrderAt = currentTime()
+	db := database.GetDb()
+	err := db.Preload("Items").Where("order_id = ?", orderId).First(&order).Error
+	if err != nil {
+		return apimodels.Response{
+			ResponseCode: "-1",
+			Status:       "Failed",
+		}, err
+	}
+
+	var newItems []models.Item
+	var total int64
+
+	log.Println("Request : ", req)
+	log.Println("Request Items : ", req.Items)
+
+	for _, itemreq := range req.Items {
+		log.Println("ItemReq : ", itemreq)
+		for _, vitem := range order.DetaiItem {
+			if vitem.ID == itemreq.ID {
+				log.Println("Found")
+				vitem.Price = itemreq.Price
+				vitem.Price = itemreq.Price
+				vitem.Quantity = int(itemreq.Quantity)
+				vitem.ItemCode = itemreq.ItemCode
+				vitem.Description = itemreq.Description
+
+				newItems = append(newItems, vitem)
+				break
+			}
+		}
+		total += (int64(itemreq.Quantity) * itemreq.Price)
+	}
+
+	order.DetaiItem = newItems
+	errdb := db.Save(&order).Error
+	if errdb != nil {
+		return apimodels.Response{
+			ResponseCode: "-1",
+			Status:       "Failed",
+		}, err
+	}
+
+	return apimodels.Response{
+		Data:         req,
+		DateTrans:    fmt.Sprintf("%v", dateTimeEpoch(currentTime())),
+		OrderID:      order.OrderID,
+		ResponseCode: "00",
+		Status:       "Success",
+		Total:        total,
+	}, nil
+
+}
+
+func DeleteOrder(orderID string) bool {
+	db := database.GetDb()
+	order := models.Order{
+		OrderID: orderID,
+	}
+	err := db.Where(&order).Delete(&order).Error
+	if err != nil {
+		log.Println("Error : ", err)
+		log.Println("DeleteOrder failed")
+		return false
+	}
+
+	return true
 
 }
 

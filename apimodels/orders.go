@@ -6,6 +6,7 @@ type Request struct {
 }
 
 type Item struct {
+	ID          uint   `json:"id"`
 	Description string `json:"description"`
 	ItemCode    string `json:"itemCode"`
 	Price       int64  `json:"price"`

@@ -22,6 +22,9 @@ func Registrasi(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, res)
 		ctx.Abort()
 	}
+	//
+	//err := validate.Struct(user)
+	//if err != nil {
 
 	ctx.JSON(http.StatusAccepted, services.Registrasi(req))
 }
